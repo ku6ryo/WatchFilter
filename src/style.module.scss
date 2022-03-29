@@ -1,0 +1,22 @@
+
+.three {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100vh * 16 / 9;
+  max-height: 100vw * 9 / 16;
+}
+
+.video {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100vh * 16 / 9;
+  max-height: 100vw * 9 / 16;
+}
