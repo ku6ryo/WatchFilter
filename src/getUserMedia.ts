@@ -5,10 +5,10 @@ export async function getUserMedia() {
       video: {
         facingMode: "user",
         width: {
-          ideal: window.innerWidth,
+          ideal: 1280,
         },
         height: {
-          ideal: window.innerHeight,
+          ideal: 720,
         }
       },
     })
