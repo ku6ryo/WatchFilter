@@ -8,8 +8,6 @@ import {
   Scene,
   Vector3,
   WebGLRenderer,
-  SphereGeometry,
-  MeshPhysicalMaterial,
   Material,
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -20,7 +18,6 @@ const { MediaPipeHands } = SupportedModels
 import style from "./style.module.scss"
 import { Pane } from "tweakpane";
 import { getUserMedia } from "./getUserMedia";
-
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
@@ -36,7 +33,6 @@ const watchZ = 0.04
 const watchRX = 133.04
 const watchRY = 234.78
 const watchRZ = 215.22
-
 
 const loader = new GLTFLoader();
 
@@ -72,12 +68,12 @@ loader.load("/watch.glb", async (gltf) => {
   const camera = new PerspectiveCamera(90, 1280 / 720, 1, 10)
   camera.position.set(0, 0, 2);
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 6; i++) {
     const light = new DirectionalLight()
     light.position.set(
-      Math.cos(Math.PI * 2 / 3 * i + Math.PI / 2) * 5,
+      Math.cos(Math.PI * 2 / 6 * i + Math.PI / 2) * 6,
       0,
-      Math.sin(Math.PI * 2 / 3 * i + Math.PI / 2) * 5
+      Math.sin(Math.PI * 2 / 6 * i + Math.PI / 2) * 6
     )
     light.intensity = 1
     light.lookAt(0, 0, 0)
