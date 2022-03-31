@@ -9,8 +9,15 @@ import {
   Vector3,
   WebGLRenderer,
   Material,
+  MeshPhysicalMaterial,
+  MeshStandardMaterial,
+  Side,
+  FrontSide,
+  Vector2,
+  Texture,
+  Color,
 } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import "./global.css"
 import Stats from "stats.js";
 import { SupportedModels, createDetector } from "@tensorflow-models/hand-pose-detection"
@@ -19,6 +26,8 @@ import style from "./style.module.scss"
 import { Pane } from "tweakpane";
 import { getUserMedia } from "./getUserMedia";
 import gShockModelUrl from "../public/gshock.glb"
+import appleWatchModelUrl from "../public/apple_watch.glb"
+import { createAxes } from "./createAxes";
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
@@ -31,23 +40,76 @@ const watchScale = 9
 const watchX = -0.3
 const watchY = 0.04
 const watchZ = 0.04
-const watchRX = 133.04
-const watchRY = 234.78
-const watchRZ = 215.22
+const watchRX = 39.13
+const watchRY = 0
+const watchRZ = 336.52
 
-const loader = new GLTFLoader();
+const appleColors = {
+  "red": {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0xCC0000, roughness: 0.5, metalness: 0.7 }),
+  },
+  "pink": {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0xFF6666, roughness: 0.5, metalness: 0.7 }),
+  }
+}
 
-loader.load(gShockModelUrl, async (gltf) => {
+async function loadModel(url: string): Promise<GLTF> {
+  const loader = new GLTFLoader()
+  return new Promise((resolve, reject) => {
+    loader.load(url, (model) => {
+      resolve(model)
+    },
+    undefined,
+    (e) => {
+      reject(e)
+    })
+  })
+}
+
+function isMesh(child: any): child is Mesh {
+  return child.isMesh
+}
+
+async function changeColor(model: GLTF, colorPalette: { [key: string]: Material }) {
+  model.scene.traverse((child) => {
+    if (isMesh(child)) {
+      const mat = colorPalette[child.name]
+      if (mat) {
+        child.material = mat
+      }
+      console.log(child.name, child.material)
+      child.renderOrder = 2;
+      if (child.name === "occluder") {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => {
+            m.colorWrite = false
+          })
+        } else {
+          child.material.colorWrite = false
+        }
+        child.renderOrder = 1;
+      }
+    }
+  })
+}
+
+const appleScreenCanvas = document.createElement("canvas")
+appleScreenCanvas.width = 128
+appleScreenCanvas.height = 128
+const screenContext = appleScreenCanvas.getContext("2d")!
+document.body.appendChild(appleScreenCanvas)
+
+;(async () => {
+  const stream = await getUserMedia()
+  if (!stream) {
+    throw new Error("media stream not available")
+  }
   const mainCanvas = document.createElement("canvas")
   mainCanvas.className = style.camera
   const mainContext = mainCanvas.getContext("2d")!
   container.appendChild(mainCanvas)
   const cameraVideo = document.createElement("video");
 
-  const stream = await getUserMedia()
-  if (!stream) {
-    throw new Error("media stream not available")
-  }
   cameraVideo.srcObject = stream;
   cameraVideo.play();
   await (new Promise((resolve, reject) => {
@@ -86,28 +148,25 @@ loader.load(gShockModelUrl, async (gltf) => {
   const amb = new AmbientLight(0xFFFFFF, 1)
   scene.add(amb)
 
+  const appleWatch = await loadModel(appleWatchModelUrl)
+  const gShock = await loadModel(gShockModelUrl)
+
   const watchContainer = new Group()
-  const watch = gltf.scene
+  const watch = appleWatch.scene
 
   watch.position.set(watchX, watchY, watchZ)
-  watch.scale.set(0.1, 0.1, 0.1)
+  watch.scale.set(0.3, 0.3, 0.3)
   watch.rotation.set(
     watchRX / 180 * Math.PI,
     watchRY / 180 * Math.PI,
     watchRZ / 180 * Math.PI,
   )
   watchContainer.add(watch)
-  watch.traverse((o) => {
-    if (o.name === "occluder") {
-      ((o as Mesh).material as Material).colorWrite = false
-    }
-  })
+  changeColor(appleWatch, appleColors["pink"])
   scene.add(watchContainer)
 
-  /*
-  const axes = createAxis(1, 1)
-  scene.add(axes)
-  */
+  const axes = createAxes(1, 1)
+  // watchContainer.add(axes)
 
   renderer.render(scene, camera)
 
@@ -202,10 +261,17 @@ loader.load(gShockModelUrl, async (gltf) => {
 
       const v0 = p1.clone().sub(p0)
       const v1 = p2.clone().sub(p0)
-     const palmSize = v1.length()
+      // const palmSize = v1.length()
+      const palmSize = 0.085
 
       const handX = v0.clone().normalize()
-      const handY = handX.clone().cross(v1).normalize()
+      const handY = (() => {
+        if (hand.handedness === "Left") {
+          return v1.clone().normalize().cross(v0).normalize()
+        } else {
+          return v0.clone().normalize().cross(v1).normalize()
+        }
+      })()
       /*
       aBalls[0].position.copy(handX.multiplyScalar(1))
       aBalls[1].position.copy(handY.multiplyScalar(1))
@@ -236,7 +302,7 @@ loader.load(gShockModelUrl, async (gltf) => {
       axes.rotateY(rY)
       */
 
-      watchContainer.scale.set(palmSize * watchScale, palmSize * watchScale, palmSize * watchScale)
+      // watchContainer.scale.set(palmSize * watchScale, palmSize * watchScale, palmSize * watchScale)
       watchContainer.rotation.setFromQuaternion(q)
       watchContainer.rotateY(rY)
       const wrist = hand.keypoints[0]
@@ -248,9 +314,27 @@ loader.load(gShockModelUrl, async (gltf) => {
       watchContainer.position.lerp(pos, 0.5)
     }
     mainContext.drawImage(renderer.domElement, 0, 0, mainCanvas.width, mainCanvas.height)
+
+    screenContext.font = "64px Arial"
+    screenContext.clearRect(0, 0, appleScreenCanvas.width, appleScreenCanvas.height)
+    screenContext.beginPath()
+    screenContext.fillText(new Date().getSeconds().toString(), 10, 50)
+    screenContext.closePath()
+    screenContext.fillStyle = "white"
+    screenContext.fill()
+    const screenTex = new Texture(appleScreenCanvas)
+    screenTex.needsUpdate = true
+
+    const screen = appleWatch.scene.children.find(c => {
+      return c.name === "screen"
+    })
+    if (screen) {
+      ;((screen as Mesh).material as MeshStandardMaterial).map = screenTex
+    }
+
     renderer.render(scene, camera)
     stats.end()
     requestAnimationFrame(loop)
   }
   requestAnimationFrame(loop)
-});
+})()
