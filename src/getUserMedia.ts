@@ -1,14 +1,14 @@
 
 export async function getUserMedia() {
-  if (navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     return await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "user",
         width: {
-          ideal: 1280,
+          ideal: window.innerWidth,
         },
         height: {
-          ideal: 720,
+          ideal: window.innerHeight,
         }
       },
     })

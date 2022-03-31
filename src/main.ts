@@ -43,17 +43,6 @@ loader.load(gShockModelUrl, async (gltf) => {
   const mainContext = mainCanvas.getContext("2d")!
   container.appendChild(mainCanvas)
   const cameraVideo = document.createElement("video");
-  cameraVideo.addEventListener("playing", () => {
-    const vw = cameraVideo.videoWidth
-    const vh = cameraVideo.videoHeight
-    mainCanvas.width = vw
-    mainCanvas.height = vh
-    mainCanvas.style.maxHeight = `calc(100vw * ${vh / vw})`
-    mainCanvas.style.maxWidth = `calc(100vh * ${vw / vh})`
-
-    camera.aspect = vw / vh
-    renderer.setSize(vw, vh)
-  })
 
   const stream = await getUserMedia()
   if (!stream) {
@@ -61,13 +50,27 @@ loader.load(gShockModelUrl, async (gltf) => {
   }
   cameraVideo.srcObject = stream;
   cameraVideo.play();
+  await (new Promise((resolve, reject) => {
+    cameraVideo.addEventListener("playing", () => {
+      resolve(0)
+    })
+  }))
+  const vw = cameraVideo.videoWidth
+  const vh = cameraVideo.videoHeight
+  mainCanvas.width = vw
+  mainCanvas.height = vh
+  mainCanvas.style.maxHeight = `calc(100vw * ${vh / vw})`
+  mainCanvas.style.maxWidth = `calc(100vh * ${vw / vh})`
 
   const renderer = new WebGLRenderer()
   renderer.setClearAlpha(0)
 
   const scene = new Scene()
-  const camera = new PerspectiveCamera(90, 1280 / 720, 1, 10)
+  const camera = new PerspectiveCamera(90, vw / vh, 1, 10)
   camera.position.set(0, 0, 2);
+
+  camera.aspect = vw / vh
+  renderer.setSize(vw, vh)
 
   for (let i = 0; i < 6; i++) {
     const light = new DirectionalLight()
