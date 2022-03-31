@@ -18,6 +18,7 @@ const { MediaPipeHands } = SupportedModels
 import style from "./style.module.scss"
 import { Pane } from "tweakpane";
 import { getUserMedia } from "./getUserMedia";
+import gShockModelUrl from "../public/gshock.glb"
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
@@ -36,7 +37,7 @@ const watchRZ = 215.22
 
 const loader = new GLTFLoader();
 
-loader.load("/watch.glb", async (gltf) => {
+loader.load(gShockModelUrl, async (gltf) => {
   const mainCanvas = document.createElement("canvas")
   mainCanvas.className = style.camera
   const mainContext = mainCanvas.getContext("2d")!
