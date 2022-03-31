@@ -1,8 +1,5 @@
 import {
   AmbientLight,
-  BoxGeometry,
-  MeshPhongMaterial,
-  Color,
   DirectionalLight,
   Group,
   Mesh,
@@ -39,33 +36,6 @@ const watchZ = 0.04
 const watchRX = 133.04
 const watchRY = 234.78
 const watchRZ = 215.22
-
-function createAxis(color: number, scale: number) {
-  const g = new Group();
-  const x = new Mesh(
-    new BoxGeometry(),
-    new MeshPhongMaterial({ color: new Color(1 * color, 0, 0) })
-  );
-  x.scale.set(1, 0.1, 0.1)
-  x.position.set(0.5, 0, 0);
-  const y = new Mesh(
-    new BoxGeometry(),
-    new MeshPhongMaterial({ color: new Color(0, 1 * color, 0) })
-  );
-  y.scale.set(0.1, 1, 0.1)
-  y.position.set(0, 0.5, 0);
-  const z = new Mesh(
-    new BoxGeometry(),
-    new MeshPhongMaterial({ color: new Color(0, 0, 1 * color) })
-  );
-  z.scale.set(0.1, 0.1, 1)
-  z.position.set(0, 0, 0.5);
-  g.add(x);
-  g.add(y);
-  g.add(z);
-  g.scale.multiplyScalar(scale);
-  return g;
-}
 
 
 const loader = new GLTFLoader();
