@@ -28,6 +28,7 @@ import { getUserMedia } from "./getUserMedia";
 import gShockModelUrl from "../public/gshock.glb"
 import appleWatchModelUrl from "../public/apple_watch.glb"
 import { createAxes } from "./createAxes";
+import { ScreenCanvas } from "./ScreenCanvas";
 
 const stats = new Stats()
 document.body.appendChild(stats.dom)
@@ -92,11 +93,8 @@ async function changeColor(model: GLTF, colorPalette: { [key: string]: Material 
   })
 }
 
-const appleScreenCanvas = document.createElement("canvas")
-appleScreenCanvas.width = 128
-appleScreenCanvas.height = 128
-const screenContext = appleScreenCanvas.getContext("2d")!
-document.body.appendChild(appleScreenCanvas)
+const screenCanvas = new ScreenCanvas()
+document.body.appendChild(screenCanvas.getCanvas())
 
 ;(async () => {
   const stream = await getUserMedia()
@@ -148,8 +146,6 @@ document.body.appendChild(appleScreenCanvas)
   scene.add(amb)
 
   const appleWatch = await loadModel(appleWatchModelUrl)
-  const gShock = await loadModel(gShockModelUrl)
-
   const watchContainer = new Group()
   const watch = appleWatch.scene
 
@@ -162,6 +158,12 @@ document.body.appendChild(appleScreenCanvas)
   )
   watchContainer.add(watch)
   changeColor(appleWatch, appleColors["pink"])
+  const screen = appleWatch.scene.children.find(c => {
+    return c.name === "screen"
+  })
+  const screenMaterial = (() => {
+    return (screen as Mesh).material as MeshStandardMaterial
+  })()
   scene.add(watchContainer)
 
   const axes = createAxes(1, 1)
@@ -300,22 +302,10 @@ document.body.appendChild(appleScreenCanvas)
     }
     mainContext.drawImage(renderer.domElement, 0, 0, mainCanvas.width, mainCanvas.height)
 
-    screenContext.font = "64px Arial"
-    screenContext.clearRect(0, 0, appleScreenCanvas.width, appleScreenCanvas.height)
-    screenContext.beginPath()
-    screenContext.fillText(new Date().getSeconds().toString(), 10, 50)
-    screenContext.closePath()
-    screenContext.fillStyle = "white"
-    screenContext.fill()
-    const screenTex = new Texture(appleScreenCanvas)
+    screenCanvas.update()
+    const screenTex = new Texture(screenCanvas.getCanvas())
     screenTex.needsUpdate = true
-
-    const screen = appleWatch.scene.children.find(c => {
-      return c.name === "screen"
-    })
-    if (screen) {
-      ;((screen as Mesh).material as MeshStandardMaterial).map = screenTex
-    }
+    screenMaterial.map = screenTex
 
     renderer.render(scene, camera)
     stats.end()
