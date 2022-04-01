@@ -25,7 +25,6 @@ const { MediaPipeHands } = SupportedModels
 import style from "./style.module.scss"
 import { Pane } from "tweakpane";
 import { getUserMedia } from "./getUserMedia";
-import gShockModelUrl from "../public/gshock.glb"
 import appleWatchModelUrl from "../public/apple_watch.glb"
 import { createAxes } from "./createAxes";
 import { ScreenCanvas } from "./ScreenCanvas";
@@ -37,20 +36,41 @@ const container = document.createElement("div")
 container.className = style.container
 document.body.appendChild(container)
 
-const watchScale = 9
+const buttonContainer = document.createElement("div")
+buttonContainer.className = style.buttonContainer
+document.body.appendChild(buttonContainer)
+
+const watchScale = 0.006
 const watchX = -0.3
 const watchY = 0.04
 const watchZ = 0.04
-const watchRX = 39.13
-const watchRY = 0
-const watchRZ = 336.52
+const watchRX = 71.93
+const watchRY = 311.93
+const watchRZ = 317.89
 
-const appleColors = {
-  "red": {
-    "Strap_Rubber": new MeshStandardMaterial({ color: 0xCC0000, roughness: 0.5, metalness: 0.7 }),
+enum ColorVariant {
+  Red = "red",
+  Pink = "pink",
+  Blue = "blue",
+  White = "white",
+  Green = "green",
+}
+
+const MaterialDict = {
+  [ColorVariant.White]: {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5, metalness: 0.7 }),
   },
-  "pink": {
-    "Strap_Rubber": new MeshStandardMaterial({ color: 0xFF6666, roughness: 0.5, metalness: 0.7 }),
+  [ColorVariant.Red]: {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0xFF3333, roughness: 0.5, metalness: 0.7 }),
+  },
+  [ColorVariant.Pink]: {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0xFF1e87, roughness: 0.5, metalness: 0.7 }),
+  },
+  [ColorVariant.Green]: {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0x66FF66, roughness: 0.5, metalness: 0.7 }),
+  },
+  [ColorVariant.Blue]: {
+    "Strap_Rubber": new MeshStandardMaterial({ color: 0x6666FF, roughness: 0.5, metalness: 0.7 }),
   }
 }
 
@@ -157,7 +177,18 @@ document.body.appendChild(screenCanvas.getCanvas())
     watchRZ / 180 * Math.PI,
   )
   watchContainer.add(watch)
-  changeColor(appleWatch, appleColors["pink"])
+  changeColor(appleWatch, MaterialDict[ColorVariant.White])
+
+  Object.values(ColorVariant).forEach(color => {
+    const button = document.createElement("button")
+    button.className = style[color]
+    button.dataset.color = color
+    button.addEventListener("click", () => {
+      changeColor(appleWatch, MaterialDict[color])
+    })
+    buttonContainer.appendChild(button)
+  })
+
   const screen = appleWatch.scene.children.find(c => {
     return c.name === "screen"
   })
@@ -250,6 +281,10 @@ document.body.appendChild(screenCanvas.getCanvas())
       const { x: x1, y: y1, z: z1 } = hand.keypoints3D![5]
       const { x: x2, y: y2, z: z2 } = hand.keypoints3D![17]
 
+      const { x: x3, y: y3 } = hand.keypoints[0]
+      const { x: x4, y: y4 } = hand.keypoints[17]
+      const palmLen2D = Math.sqrt(Math.pow(x3 - x4, 2) + Math.pow(y3 - y4, 2))
+
       /*
       hands[0].keypoints3D!.forEach((p, i) => {
         balls[i].position.set(p.x * 10, - p.y * 10, - p.z! * 10)
@@ -262,8 +297,11 @@ document.body.appendChild(screenCanvas.getCanvas())
 
       const v0 = p1.clone().sub(p0)
       const v1 = p2.clone().sub(p0)
-      // const palmSize = v1.length()
-      const palmSize = 0.085
+
+      const v12D = v1.clone().setZ(0) 
+      const ratio = v1.length() / v12D.length()
+      console.log(ratio, palmLen2D)
+      const palmLen = ratio * palmLen2D
 
       const handX = v0.clone().normalize()
       const handY = (() => {
@@ -291,7 +329,8 @@ document.body.appendChild(screenCanvas.getCanvas())
 
       const q = new Quaternion().multiplyQuaternions(qx, qy)
       watchContainer.rotation.setFromQuaternion(q)
-      // watchContainer.scale.set(palmSize * watchScale, palmSize * watchScale, palmSize * watchScale)
+
+      watchContainer.scale.set(palmLen * watchScale, palmLen * watchScale, palmLen * watchScale)
       const wrist = hand.keypoints[0]
       const pos = new Vector3(
         (wrist.x - cameraVideo.videoWidth / 2) * 4 / cameraVideo.videoHeight,
