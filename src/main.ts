@@ -77,7 +77,6 @@ async function changeColor(model: GLTF, colorPalette: { [key: string]: Material 
       if (mat) {
         child.material = mat
       }
-      console.log(child.name, child.material)
       child.renderOrder = 2;
       if (child.name === "occluder") {
         if (Array.isArray(child.material)) {
@@ -281,30 +280,16 @@ document.body.appendChild(appleScreenCanvas)
       const modelX = new Vector3(1, 0, 0)
       const modelY = new Vector3(0, 1, 0)
 
-      const a = handY.clone().cross(modelY).normalize()
-      const q = new Quaternion().setFromAxisAngle(a, -Math.acos(handY.dot(modelY)))
+      const ay = modelY.clone().cross(handY).normalize()
+      const qy = new Quaternion().setFromAxisAngle(ay, Math.acos(handY.dot(modelY)))
 
-      const modelX2 = modelX.clone().applyQuaternion(q).normalize()
-      const crss = handX.clone().cross(modelX2).normalize()
-      const sign = Math.sign(crss.clone().dot(handY))
-      const dot = modelX2.dot(handX)
+      const modelX2 = modelX.clone().applyQuaternion(qy).normalize()
+      const ax = modelX2.clone().cross(handX).normalize()
+      const qx = new Quaternion().setFromAxisAngle(ax, Math.acos(handX.dot(modelX2)))
 
-      const rY = (() => {
-        const theta = Math.acos(dot)
-        if (sign > 0) {
-          return -theta
-        } else {
-          return theta
-        }
-      })()
-      /*
-      axes.rotation.setFromQuaternion(q)
-      axes.rotateY(rY)
-      */
-
-      // watchContainer.scale.set(palmSize * watchScale, palmSize * watchScale, palmSize * watchScale)
+      const q = new Quaternion().multiplyQuaternions(qx, qy)
       watchContainer.rotation.setFromQuaternion(q)
-      watchContainer.rotateY(rY)
+      // watchContainer.scale.set(palmSize * watchScale, palmSize * watchScale, palmSize * watchScale)
       const wrist = hand.keypoints[0]
       const pos = new Vector3(
         (wrist.x - cameraVideo.videoWidth / 2) * 4 / cameraVideo.videoHeight,
